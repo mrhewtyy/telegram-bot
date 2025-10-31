@@ -1,13 +1,18 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from datetime import datetime
 
+# ==========================
+# 🔧 НАСТРОЙКИ (отредактируй под себя)
+# ==========================
 
+BOT_TOKEN = "8296663214:AAGnEF1TEhy4KKhE5TUWy2YN4K6AxMTVQKk"       # 🔹 Вставь сюда токен от BotFather
+ADMIN_ID = 7080287669                  # 🔹 Вставь свой chat_id (мы его уже знаем)
+CHANNEL_LINK = "https://t.me/+obsenlGQQC4wMzI6"  # 🔹 Вставь ссылку на свой Telegram-канал
 
-BOT_TOKEN = "8296663214:AAGnEF1TEhy4KKhE5TUWy2YN4K6AxMTVQKk"      
-ADMIN_ID = 7080287669                 
-CHANNEL_LINK = "https://t.me/+obsenlGQQC4wMzI6" 
-
-
+# ==========================
+# 💬 ТЕКСТЫ СООБЩЕНИЙ
+# ==========================
 
 START_MESSAGE = (
     "👋 Привет! Я *Ассистент Подпольного Собрания.*\n\n"
@@ -30,7 +35,9 @@ ABOUT_TEXT = (
 
 THANK_YOU_TEXT = "✅ Ваша задача принята в работу, спасибо за обращение к нам!"
 
-
+# ==========================
+# 🎛️ КНОПКИ МЕНЮ
+# ==========================
 
 MAIN_MENU = [
     ["📤 Отправить задание"],
@@ -41,9 +48,12 @@ BACK_MENU = [
     ["⬅️ Назад в меню"]
 ]
 
-
+# ==========================
+# 🚀 ОБРАБОТЧИКИ
+# ==========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отправляет приветствие и кнопки меню"""
     keyboard = ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
     await update.message.reply_text(
         START_MESSAGE,
@@ -52,6 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает нажатия кнопок и другие сообщения"""
     text = update.message.text
 
     if text == "📤 Отправить задание":
@@ -61,10 +72,16 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif text == "🆘 Помощь":
-        await update.message.reply_text(HELP_TEXT, reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True))
+        await update.message.reply_text(
+            HELP_TEXT,
+            reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True)
+        )
 
     elif text == "📢 О канале":
-        await update.message.reply_text(ABOUT_TEXT, reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True))
+        await update.message.reply_text(
+            ABOUT_TEXT,
+            reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True)
+        )
 
     elif text == "⬅️ Назад в меню":
         await update.message.reply_text(
@@ -73,12 +90,11 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     else:
-        
+        # всё остальное пересылаем админу
         await forward_to_admin(update, context)
 
-from datetime import datetime
-
 async def forward_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Пересылает задания админу в красивом формате"""
     try:
         user = update.effective_user
         username = f"@{user.username}" if user.username else user.first_name
@@ -125,11 +141,14 @@ async def forward_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Ошибка пересылки: {e}")
 
-
+# ==========================
+# 🧠 ЗАПУСК ПРИЛОЖЕНИЯ
+# ==========================
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
+    # обработчики
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_buttons))
 
@@ -138,4 +157,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
