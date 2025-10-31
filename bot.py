@@ -76,22 +76,55 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await forward_to_admin(update, context)
 
+from datetime import datetime
+
 async def forward_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user = update.effective_user
-        if update.message.photo:
-            
-            file_id = update.message.photo[-1].file_id
-            caption = update.message.caption or ""
-            await context.bot.send_photo(chat_id=ADMIN_ID, photo=file_id, caption=f"📩 От @{user.username or user.first_name}:\n{caption}")
-        else:
-            
-            await context.bot.send_message(chat_id=ADMIN_ID, text=f"📩 От @{user.username or user.first_name}:\n{update.message.text}")
+        username = f"@{user.username}" if user.username else user.first_name
+        time_now = datetime.now().strftime("%d.%m.%Y, %H:%M")
 
+        if update.message.photo:
+            # если фото
+            file_id = update.message.photo[-1].file_id
+            caption = update.message.caption or "Без подписи"
+
+            text_to_admin = (
+                f"📎 *Новое задание (фото)*\n"
+                f"👤 От: {username}\n"
+                f"🕓 {time_now}\n"
+                f"💬 Подпись:\n> {caption}"
+            )
+
+            await context.bot.send_photo(
+                chat_id=ADMIN_ID,
+                photo=file_id,
+                caption=text_to_admin,
+                parse_mode="Markdown"
+            )
+
+        else:
+            # если текст
+            user_text = update.message.text
+            text_to_admin = (
+                f"📎 *Новое задание*\n"
+                f"👤 От: {username}\n"
+                f"🕓 {time_now}\n"
+                f"💬 Текст:\n> {user_text}"
+            )
+
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=text_to_admin,
+                parse_mode="Markdown"
+            )
+
+        # ответ пользователю
         await update.message.reply_text(THANK_YOU_TEXT)
 
     except Exception as e:
         print(f"Ошибка пересылки: {e}")
+
 
 
 def main():
@@ -105,3 +138,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
