@@ -157,3 +157,19 @@ def main():
 
 if __name__ == "__main__":
     main()
+import os
+from datetime import datetime
+import time
+
+while True:
+    now = datetime.now().time()
+    # Время запуска с 7:00 до 00:00
+    if now.hour >= 7 or now.hour < 0:
+        try:
+            app.run_polling()
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            time.sleep(10)
+    else:
+        print("⏸ Бот спит до 07:00...")
+        time.sleep(300)  # спим 5 минут
