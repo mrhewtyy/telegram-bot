@@ -1,56 +1,107 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# === НАСТРОЙКИ ===
-BOT_TOKEN = "8296663214:AAGnEF1TEhy4KKhE5TUWy2YN4K6AxMTVQKk"
-ADMIN_CHAT_ID = 7080287669  # Кому бот пересылает сообщения
 
-# === ФУНКЦИЯ /start ===
+
+BOT_TOKEN = "8296663214:AAGnEF1TEhy4KKhE5TUWy2YN4K6AxMTVQKk"      
+ADMIN_ID = 7080287669                 
+CHANNEL_LINK = "https://t.me/+obsenlGQQC4wMzI6" 
+
+
+
+START_MESSAGE = (
+    "👋 Привет! Я *Ассистент Подпольного Собрания.*\n\n"
+    "📩 Сюда ты можешь отправить задание, которое нужно разобрать или получить ответы.\n"
+    "⚙️ Будь готов, что не все задания мы публикуем в канал.\n\n"
+    "_Выбери действие ниже:_"
+)
+
+HELP_TEXT = (
+    "ℹ️ Просто отправь сюда текст или фото своего задания.\n"
+    "Мы получим его и передадим менеджеру для разбора.\n\n"
+    "⬅️ Нажми «Назад в меню», чтобы вернуться."
+)
+
+ABOUT_TEXT = (
+    f"📢 Наш канал: {CHANNEL_LINK}\n\n"
+    "🕵️ Здесь публикуются ответы, примеры и пояснения.\n"
+    "⬅️ Нажми «Назад в меню», чтобы вернуться."
+)
+
+THANK_YOU_TEXT = "✅ Ваша задача принята в работу, спасибо за обращение к нам!"
+
+
+
+MAIN_MENU = [
+    ["📤 Отправить задание"],
+    ["🆘 Помощь", "📢 О канале"]
+]
+
+BACK_MENU = [
+    ["⬅️ Назад в меню"]
+]
+
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome_text = (
-        "Привет, я ассистент Подпольного собрания.\n"
-        "Сюда ты можешь отправить задание, которое надо разобрать или получить ответы.\n"
-        "Будь готов, что не все задания мы публикуем в канал."
+    keyboard = ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
+    await update.message.reply_text(
+        START_MESSAGE,
+        parse_mode="Markdown",
+        reply_markup=keyboard
     )
-    await update.message.reply_text(welcome_text)
 
-# === ОБРАБОТКА ВСЕХ СООБЩЕНИЙ ===
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"📩 Получено сообщение от @{update.message.from_user.username}: {update.message.text if update.message.text else 'фото/файл'}")
-    print(f"🆔 chat_id = {update.message.chat.id}")
-    user = update.message.from_user
+async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-    photo = update.message.photo
 
-    # Получаем ID администратора
-    try:
-        chat_admin = await context.bot.get_chat(ADMIN_CHAT_ID)
-        admin_id = chat_admin.id
-    except Exception as e:
-        print("Ошибка получения ID администратора:", e)
-        return
+    if text == "📤 Отправить задание":
+        await update.message.reply_text(
+            "✉️ Пришли сюда своё задание (текст или фото), и мы примем его в работу.",
+            reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True)
+        )
 
-    # Отправляем сообщение админу
-    if photo:
-        file_id = photo[-1].file_id  # лучшее качество
-        caption = update.message.caption or "(без подписи)"
-        await context.bot.send_photo(chat_id=ADMIN_CHAT_ID, photo=file_id,
-                                     caption=f"📩 От @{user.username or user.id}:\n{caption}")
-    elif text:
-        await context.bot.send_message(chat_id=ADMIN_CHAT_ID,
-                                       text=f"📩 От @{user.username or user.id}:\n{text}")
+    elif text == "🆘 Помощь":
+        await update.message.reply_text(HELP_TEXT, reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True))
+
+    elif text == "📢 О канале":
+        await update.message.reply_text(ABOUT_TEXT, reply_markup=ReplyKeyboardMarkup(BACK_MENU, resize_keyboard=True))
+
+    elif text == "⬅️ Назад в меню":
+        await update.message.reply_text(
+            "🔙 Возвращаемся в главное меню.",
+            reply_markup=ReplyKeyboardMarkup(MAIN_MENU, resize_keyboard=True)
+        )
+
     else:
-        await context.bot.send_message(chat_id=ADMIN_CHAT_ID,
-                                       text=f"📩 От @{user.username or user.id}: (неизвестный тип сообщения)")
+        
+        await forward_to_admin(update, context)
 
-    # Отвечаем пользователю
-    await update.message.reply_text("Ваша задача принята в работу, спасибо за обращение к нам ✅")
+async def forward_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        user = update.effective_user
+        if update.message.photo:
+            
+            file_id = update.message.photo[-1].file_id
+            caption = update.message.caption or ""
+            await context.bot.send_photo(chat_id=ADMIN_ID, photo=file_id, caption=f"📩 От @{user.username or user.first_name}:\n{caption}")
+        else:
+            
+            await context.bot.send_message(chat_id=ADMIN_ID, text=f"📩 От @{user.username or user.first_name}:\n{update.message.text}")
 
-# === ЗАПУСК БОТА ===
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+        await update.message.reply_text(THANK_YOU_TEXT)
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_message))
+    except Exception as e:
+        print(f"Ошибка пересылки: {e}")
 
-print("🤖 Бот запущен...")
-app.run_polling()
+
+def main():
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_buttons))
+
+    print("✅ Бот запущен и готов к работе!")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
